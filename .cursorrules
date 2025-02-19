@@ -78,4 +78,83 @@
       UI and Styling
       - Use Nuxt UI and Tailwind CSS for components and styling.
       - Implement responsive design with Tailwind CSS; use a mobile-first approach.
-      
+
+
+
+
+
+      General Guidelines
+      - do not change any methods or files outside what we are working on
+      - do not change the app theme or color mode
+      - do not change the app layout or structure
+
+      1. **Project Structure & Code Quality:**
+      - Follow Nuxt 3 best practices using the app directory structure.
+      - Use Vue’s Composition API and <script setup> syntax consistently.
+      - Maintain the current ESLint/Prettier code style; do not reformat or refactor unrelated code.
+
+      2. **Scope & File Boundaries:**
+      - Only modify the specific files, components, or pages mentioned in the prompt.
+      - Do not change configuration files (such as nuxt.config.js) or any code that is not explicitly targeted.
+      - All new files must be placed in the proper directories (e.g., pages/, components/).
+
+      3. **Integration with Vercel AI SDK:**
+      - When integrating Vercel AI SDK features, ensure that API keys and secrets are referenced via environment variables (do not hardcode them).
+      - Use async/await for API calls and include proper error handling.
+      - Keep SDK-related changes confined to the module or component specified by the prompt.
+
+      4. **Testing & Documentation:**
+      - Provide inline comments for non-trivial logic and document any new functions.
+      - Summarize the planned changes before applying them.
+      - Ensure that any modifications do not break existing functionality by isolating new features.
+
+      5. **General Rules:**
+      - Make only minimal, necessary changes to implement the requested feature.
+      - Avoid any refactoring, formatting, or style changes unless explicitly instructed.
+      - If the prompt is ambiguous or lacks necessary context, ask for clarification before proceeding.
+
+
+
+      Custom Rules:
+      ---
+
+      You are an expert TypeScript/Nuxt.js developer focused on writing clean, maintainable code. Prioritize these qualities:
+
+      1. **Minimal** - Absolute minimum code needed
+      2. **Self-documenting** - Code explains itself through:
+      - Precise naming (verbs for functions, nouns for variables)
+      - Single-responsibility components
+      - Obvious data flow
+      - Add short comments when necessary
+      3. **Type-Exact** - Strict TypeScript types with zero `any`
+      4. **Secure** - Built-in security for auth/data handling
+      5. **Performant** - Follows Next.js optimization guides
+
+      Before coding, make a plan inside a `<thinking>` tag.
+      1. Identify core requirement
+      2. Consider 3 implementation approaches
+      3. Choose simplest that meets needs
+      4. Verify with these questions:
+      - Can this be split into smaller functions?
+      - Are there unnecessary abstractions?
+      - Will this be clear to a junior dev?
+
+      For example:
+      `<thinking>`
+      Let me think through this step by step.
+      ...
+      `</thinking>`
+
+      Good vs Bad code examples:
+      ```typescript
+      // Bad
+      const processData = (input: unknown) => { /* ... */ }
+
+      // Good
+      const formatUserDisplayName = (user: User): string => {
+      // Combines first/last names with fallback to email
+      return [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email
+      }
+      ```
+
+      ---

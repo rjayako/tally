@@ -1,5 +1,7 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { HomeIcon, ChartIcon, InsightIcon, DraftIcon } from '~/components/icons'
+import { useSectionsStore } from '~/stores/sections'
+import type { Section } from '~/stores/sections'
 
 export interface ContentSection {
   id: string
@@ -7,66 +9,72 @@ export interface ContentSection {
   icon: any
   isVisible: boolean
   isDraft?: boolean
+  content?: string
+  type?: 'welcome' | 'trends' | 'insights' | 'dynamic'
 }
 
-const sectionsState = ref<ContentSection[]>([
-  { 
-    id: 'welcome',
-    title: 'Overview',
-    icon: HomeIcon,
-    isVisible: true 
-  },
-  { 
-    id: 'trends',
-    title: 'Trends',
-    icon: ChartIcon,
-    isVisible: false 
-  },
-  { 
-    id: 'insights',
-    title: 'Insights',
-    icon: InsightIcon,
-    isVisible: false 
-  }
-])
-
+/**
+ * Composable for managing content sections
+ * Provides utilities for section visibility and creation
+ */
 export function useContentSections() {
+  const sectionsStore = useSectionsStore()
+
+  /**
+   * Hides a section by its ID
+   */
   const hideSection = (sectionId: string) => {
-    const section = sectionsState.value.find(s => s.id === sectionId)
-    if (section) {
-      section.isVisible = false
-    }
+    sectionsStore.hideSection(sectionId)
   }
 
+  /**
+   * Shows a section by its ID
+   */
   const showSection = (sectionId: string) => {
-    const section = sectionsState.value.find(s => s.id === sectionId)
-    if (section) {
-      section.isVisible = true
+    sectionsStore.showSection(sectionId)
+  }
+
+  /**
+   * Creates a new dynamic section
+   * @param title - The title of the section
+   * @param content - Optional content for the section
+   * @param type - The type of section (bar-graph, pie-chart, or dynamic)
+   */
+  const addDynamicSection = async (
+    title: string, 
+    content?: string, 
+    type: Section['type'] = 'dynamic'
+  ) => {
+    try {
+      const section = await sectionsStore.createSection(title, type)
+      return section.id
+    } catch (error) {
+      console.error('Failed to create dynamic section:', error)
+      throw error
     }
   }
 
-  const addDraftSection = () => {
-    const draftId = `draft-${Date.now()}`
-    sectionsState.value.push({
-      id: draftId,
-      title: 'Draft Section',
-      icon: DraftIcon,
-      isVisible: false,
-      isDraft: true
-    })
-    return draftId
-  }
-
+  /**
+   * Checks if a section is visible
+   */
   const isSectionVisible = (sectionId: string): boolean => {
-    const section = sectionsState.value.find(s => s.id === sectionId)
+    const section = sectionsStore.sections.find(s => s.id === sectionId)
     return section?.isVisible ?? false
   }
 
+  /**
+   * Returns all dynamic (draft) sections
+   */
+  const getDynamicSections = computed(() => {
+    return sectionsStore.sections.filter(s => s.isDraft)
+  })
+
   return {
-    sections: sectionsState,
+    sections: computed(() => sectionsStore.sections),
     hideSection,
     showSection,
     isSectionVisible,
-    addDraftSection
+    addDynamicSection,
+    getDynamicSections
   }
 }

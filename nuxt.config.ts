@@ -6,8 +6,21 @@ export default defineNuxtConfig({
   devtools: { enabled: false },
   modules: [
     '@nuxtjs/tailwindcss',
-    '@pinia/nuxt'
+    '@pinia/nuxt',
+    '@nuxt/ui'
   ],
+  ui: {
+    global: true
+  },
+  tailwindcss: {
+    exposeConfig: true
+  },
+  postcss: {
+    plugins: {
+      tailwindcss: {},
+      autoprefixer: {}
+    }
+  },
   css: ['~/assets/css/main.css'],
   app: {
     head: {
@@ -37,5 +50,5 @@ export default defineNuxtConfig({
         }
       ]
     }
-  }
+  },
 })

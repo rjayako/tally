@@ -1,13 +1,14 @@
-import type { Config } from 'tailwindcss'
-
-export default {
-  content: [],
-  theme: {
-    extend: {
-      fontFamily: {
-        sans: ['Afacad Flux', 'sans-serif'],
-      },
-    },
+module.exports = {
+  content: [
+    './assets/**/*.{vue,js,css}',
+    './components/**/*.{vue,js}',
+    './layouts/**/*.vue',
+    './pages/**/*.vue',
+    './plugins/**/*.{js,ts}',
+    './nuxt.config.{js,ts}',
+  ],
+  variants: {
+    extend: {},
   },
   plugins: [],
-} satisfies Config
+};

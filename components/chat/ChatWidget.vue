@@ -9,6 +9,9 @@
 </template>
 
 <script setup>
+import ChatButton from './ChatButton.vue'
+import ChatBox from './ChatBox.vue'
+
 const isChatVisible = ref(false)
 
 const toggleChat = () => {

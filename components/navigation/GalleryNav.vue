@@ -3,7 +3,7 @@
     <div class="container mx-auto px-4">
       <div class="overflow-x-auto flex items-center space-x-4 py-4 scrollbar-hide">
         <button
-          v-for="section in sections"
+          v-for="section in sectionsStore.sectionsWithIcons"
           :key="section.id"
           @click="handleSectionClick(section.id)"
           :class="[
@@ -26,24 +26,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import AddSectionButton from './AddSectionButton.vue';
-import { useContentSections } from '~/composables/useContentSections';
+import { useSectionsStore } from '~/stores/sections';
 import { useChatStore } from '~/stores/chat';
 
-const { sections, showSection, hideSection, addDraftSection } = useContentSections();
+const sectionsStore = useSectionsStore();
 const chatStore = useChatStore();
 const activeSectionId = ref('welcome');
 
 const handleSectionClick = (sectionId: string) => {
-  sections.value.forEach(section => {
-    hideSection(section.id);
+  sectionsStore.sections.forEach(section => {
+    sectionsStore.hideSection(section.id);
   });
   
-  showSection(sectionId);
+  sectionsStore.showSection(sectionId);
   activeSectionId.value = sectionId;
 
-  const section = sections.value.find(s => s.id === sectionId);
+  const section = sectionsStore.sections.find(s => s.id === sectionId);
   if (section?.isDraft) {
     chatStore.openChat();
     chatStore.addMessage({
@@ -54,9 +54,25 @@ const handleSectionClick = (sectionId: string) => {
 };
 
 const handleAddSection = () => {
-  const newSectionId = addDraftSection();
-  handleSectionClick(newSectionId);
+  sectionsStore.createSection('New Section').then(section => {
+    handleSectionClick(section.id);
+  });
 };
+
+// Handle section creation from chat
+const handleSectionCreated = (event: CustomEvent) => {
+  const { sectionId } = event.detail;
+  // Only handle navigation to the new section
+  activeSectionId.value = sectionId;
+};
+
+onMounted(() => {
+  window.addEventListener('section-created', handleSectionCreated as EventListener);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('section-created', handleSectionCreated as EventListener);
+});
 </script>
 
 <style scoped>

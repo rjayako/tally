@@ -1,5 +1,6 @@
 import { tool } from 'ai';
 import { z } from 'zod';
+import { useSectionCreation } from '~/composables/useSectionCreation';
 
 export const weatherTool = tool({
   description: 'Display the weather for a location',
@@ -23,7 +24,41 @@ export const stockTool = tool({
   },
 });
 
+export const createSectionTool = tool({
+  description: 'Create a new section in the gallery navigation',
+  parameters: z.object({
+    title: z.string().describe('The title for the new section'),
+  }),
+  execute: async function ({ title }) {
+    try {
+      // Call the API directly instead of using the store
+      const response = await $fetch('/api/sections', {
+        method: 'POST',
+        body: { title }
+      });
+      
+      // Emit an event that the client can listen to through the chat response
+      return { 
+        success: true, 
+        message: `Created new section: ${title}`, 
+        sectionId: response.id,
+        __client_action: {
+          type: 'CREATE_SECTION',
+          payload: {
+            id: response.id,
+            title: response.title
+          }
+        }
+      };
+    } catch (error) {
+      console.error('Failed to create section:', error);
+      return { success: false, message: 'Failed to create section' };
+    }
+  },
+});
+
 export const tools = {
   displayWeather: weatherTool,
   getStockPrice: stockTool,
+  createSection: createSectionTool,
 };

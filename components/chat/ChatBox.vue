@@ -39,6 +39,9 @@
               <template v-if="tool.state === 'result'">
                 <Weather v-if="tool.toolName === 'displayWeather'" v-bind="tool.result" />
                 <Stock v-if="tool.toolName === 'getStockPrice'" v-bind="tool.result" />
+                <div v-if="tool.toolName === 'createSection'" class="text-sm text-green-600">
+                  {{ tool.result.message }}
+                </div>
               </template>
               <template v-else>
                 <div v-if="tool.toolName === 'displayWeather'" class="text-sm animate-pulse">
@@ -46,6 +49,9 @@
                 </div>
                 <div v-else-if="tool.toolName === 'getStockPrice'" class="text-sm animate-pulse">
                   Loading stock information...
+                </div>
+                <div v-else-if="tool.toolName === 'createSection'" class="text-sm animate-pulse">
+                  Creating new section...
                 </div>
                 <div v-else class="text-sm animate-pulse">
                   Loading...
@@ -93,9 +99,10 @@
 </template>
 
 <script setup lang="ts">
-import { useChat } from '@ai-sdk/vue'
 import Weather from '../Weather.vue'
 import Stock from '../Stock.vue'
+import CreateSection from '../CreateSection.vue'
+import { tallyChat } from '~/composables/tallyChat'
 
 const props = defineProps({
   isVisible: {
@@ -118,11 +125,9 @@ const windowSize = ref({ width: 0, height: 0 })
 const {
   messages,
   input,
-  handleSubmit
-} = useChat({
-  api: '/api/chat',
-  maxSteps: 5
-})
+  handleSubmit,
+  chatContainer: chatContainerRef
+} = tallyChat()
 
 // Watch for visibility changes
 watch(() => props.isVisible, (newValue) => {
