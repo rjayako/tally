@@ -1,28 +1,13 @@
 <template>
   <div class="mt-8 space-y-4">
-    <div class="relative">
-      <label 
-        for="file-upload"
-        :class="[
-          'inline-flex items-center px-6 py-3 rounded-lg transition-colors duration-200 cursor-pointer shadow-sm',
-          processing ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#1B4D4B] hover:bg-[#2A6967]',
-          'text-white'
-        ]"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-        </svg>
-        {{ processing ? 'Processing...' : 'Upload Your Statement Securely' }}
-      </label>
-      <input 
-        id="file-upload" 
-        type="file" 
-        class="hidden" 
-        accept=".csv,.xlsx,.xls"
-        @change="handleFileChange"
-        :disabled="processing"
-      >
-    </div>
+    <input 
+      id="file-upload" 
+      type="file" 
+      class="hidden" 
+      accept=".csv,.xlsx,.xls"
+      @change="handleFileChange"
+      :disabled="processing"
+    >
 
     <div v-if="errorMessage" class="text-red-600 text-sm mt-2">
       {{ errorMessage }}
@@ -34,10 +19,6 @@
       </svg>
       File selected: {{ selectedFileLocal.name }}
     </div>
-
-    <p class="text-sm text-gray-500">Supported formats: CSV, Excel (.xlsx, .xls)</p>
-    
-    <FileGallery />
   </div>
 </template>
 
