@@ -19,6 +19,7 @@ export interface Account {
   id?: number;
   cardMember: string;
   accountNumber: string;
+  accountType: string; // 'credit' or 'debit'
 }
 
 // Define the File interface for tracking uploaded CSV files
@@ -39,6 +40,11 @@ db.version(2).stores({
   transactions: "++id,date,dateProcessed,amount,description,accountId,categoryId,categoryName,&hash,fileId",
   accounts: "++id,&accountNumber",
   files: "++id,filename,uploadDate,&hash"
+});
+
+// Upgrade database to version 3 to add accountType to accounts
+db.version(3).stores({
+  accounts: "++id,&accountNumber,accountType"
 });
 
 // // Upgrade database to version 4 to add categoryId to transactions
@@ -64,17 +70,19 @@ function computeHash(str: string): string {
  * Helper function to get an account by account number or create it if not found.
  * @param cardMember - The card member's name
  * @param accountNumber - The account number
+ * @param accountType - The account type ('credit' or 'debit')
  * @returns The id of the account
  */
 async function getOrCreateAccountId(
   cardMember: string,
-  accountNumber: string
+  accountNumber: string,
+  accountType: string = 'credit'
 ): Promise<number> {
   const existing = await accounts.get({ accountNumber });
   if (existing && existing.id !== undefined) {
     return existing.id;
   }
-  return await accounts.add({ cardMember, accountNumber });
+  return await accounts.add({ cardMember, accountNumber, accountType });
 }
 
 /**
@@ -105,8 +113,9 @@ async function getCategoryFromDescription(
  * If any transaction row already exists (based on the hash), an error is thrown to prevent duplicate uploads.
  * @param csvContent - The CSV file content as a string
  * @param filename - The name of the uploaded file
+ * @param accountType - The type of account ('credit' or 'debit')
  */
-export async function importTransactionCsv(csvContent: string, filename: string): Promise<void> {
+export async function importTransactionCsv(csvContent: string, filename: string, accountType: string = 'credit'): Promise<void> {
   // Split CSV into lines and filter out empty lines
   const lines = csvContent.split("\n").filter((line) => line.trim() !== "");
   if (lines.length < 2) return; // No data
@@ -199,7 +208,8 @@ export async function importTransactionCsv(csvContent: string, filename: string)
   for (const row of rows) {
     const accountId = await getOrCreateAccountId(
       row.cardMember,
-      row.accountNumber
+      row.accountNumber,
+      accountType
     );
     await transactions.put({
       date: new Date(row.dateStr),

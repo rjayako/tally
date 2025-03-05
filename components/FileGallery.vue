@@ -40,7 +40,7 @@
       
       <!-- Upload Card -->
       <div 
-        @click="handleUpload"
+        @click="showUploadModal = true"
         :class="[
           'border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center transition-colors',
           isUploading 
@@ -142,6 +142,198 @@
         </UCard>
       </div>
     </UModal>
+    
+    <!-- File Upload Modal -->
+    <UModal v-model="showUploadModal">
+      <div class="fixed inset-0 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
+        <UCard :ui="{ base: 'w-[500px] max-w-[95vw]' }">
+          <div class="p-6">
+            <div class="flex items-center justify-between mb-6">
+              <h3 class="text-xl font-semibold text-slate-800">Upload New File</h3>
+              <button @click="showUploadModal = false" class="text-slate-400 hover:text-slate-600">
+                <Icon name="lucide:x" class="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div class="space-y-6">
+              <!-- File Drop Zone -->
+              <div 
+                class="relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-200"
+                :class="[
+                  selectedUploadFile 
+                    ? 'bg-emerald-50 border-emerald-300' 
+                    : 'border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/30'
+                ]"
+                @dragover.prevent
+                @drop.prevent="handleFileDrop"
+              >
+                <input 
+                  ref="fileInputRef"
+                  type="file" 
+                  accept=".csv" 
+                  class="hidden" 
+                  @change="handleFileSelected"
+                />
+                
+                <div v-if="!selectedUploadFile" class="py-4">
+                  <div class="mb-4">
+                    <Icon name="lucide:upload-cloud" class="w-12 h-12 mx-auto text-slate-400" />
+                  </div>
+                  <h4 class="font-medium text-slate-700 mb-2">Drag and drop your file here</h4>
+                  <p class="text-sm text-slate-500 mb-4">or</p>
+                  <button 
+                    @click="browseFiles"
+                    class="px-5 py-2.5 rounded-lg text-white bg-emerald-600 hover:bg-emerald-700 transition-colors inline-flex items-center"
+                  >
+                    <Icon name="lucide:folder-open" class="w-4 h-4 mr-2" />
+                    Browse Files
+                  </button>
+                  <p class="text-xs text-slate-500 mt-4">
+                    Supported format: CSV
+                  </p>
+                </div>
+                
+                <div v-else class="py-4">
+                  <div class="flex items-center justify-center mb-3">
+                    <div class="bg-emerald-100 text-emerald-700 p-3 rounded-full">
+                      <Icon name="lucide:file-text" class="w-8 h-8" />
+                    </div>
+                  </div>
+                  <h4 class="font-medium text-emerald-700 mb-1 text-lg">{{ selectedUploadFile.name }}</h4>
+                  <p class="text-sm text-slate-500 mb-3">{{ formatFileSize(selectedUploadFile.size) }}</p>
+                  <button 
+                    @click="resetFileInput"
+                    class="text-sm text-slate-600 hover:text-red-600 transition-colors inline-flex items-center"
+                  >
+                    <Icon name="lucide:x" class="w-3.5 h-3.5 mr-1" />
+                    Remove
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Transaction Type Selection -->
+              <div class="border border-slate-200 rounded-xl p-5 bg-slate-50">
+                <h4 class="font-medium text-slate-800 mb-4">Transaction Type <span class="text-red-500">*</span></h4>
+                <div class="grid grid-cols-2 gap-4">
+                  <label 
+                    class="flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200"
+                    :class="[
+                      accountType === 'credit' 
+                        ? 'border-emerald-500 bg-emerald-50' 
+                        : 'border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/30'
+                    ]"
+                  >
+                    <input 
+                      type="radio" 
+                      v-model="accountType" 
+                      value="credit" 
+                      class="sr-only"
+                    />
+                    <div class="mb-2 text-center">
+                      <div 
+                        class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2"
+                        :class="[
+                          accountType === 'credit' 
+                            ? 'bg-emerald-100 text-emerald-700' 
+                            : 'bg-slate-100 text-slate-500'
+                        ]"
+                      >
+                        <Icon name="lucide:credit-card" class="w-6 h-6" />
+                      </div>
+                      <span 
+                        class="font-medium"
+                        :class="[
+                          accountType === 'credit' 
+                            ? 'text-emerald-700' 
+                            : 'text-slate-700'
+                        ]"
+                      >
+                        Credit Card
+                      </span>
+                    </div>
+                  </label>
+                  
+                  <label 
+                    class="flex flex-col items-center justify-center p-4 rounded-lg border-2 cursor-pointer transition-all duration-200"
+                    :class="[
+                      accountType === 'debit' 
+                        ? 'border-emerald-500 bg-emerald-50' 
+                        : 'border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/30'
+                    ]"
+                  >
+                    <input 
+                      type="radio" 
+                      v-model="accountType" 
+                      value="debit" 
+                      class="sr-only"
+                    />
+                    <div class="mb-2 text-center">
+                      <div 
+                        class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2"
+                        :class="[
+                          accountType === 'debit' 
+                            ? 'bg-emerald-100 text-emerald-700' 
+                            : 'bg-slate-100 text-slate-500'
+                        ]"
+                      >
+                        <Icon name="lucide:landmark" class="w-6 h-6" />
+                      </div>
+                      <span 
+                        class="font-medium"
+                        :class="[
+                          accountType === 'debit' 
+                            ? 'text-emerald-700' 
+                            : 'text-slate-700'
+                        ]"
+                      >
+                        Debit Card
+                      </span>
+                    </div>
+                  </label>
+                </div>
+                <p v-if="accountTypeError" class="text-red-500 text-xs mt-3 flex items-center">
+                  <Icon name="lucide:alert-circle" class="w-3.5 h-3.5 mr-1" />
+                  Please select a transaction type
+                </p>
+              </div>
+              
+              <div v-if="uploadError" class="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-sm flex items-start">
+                <Icon name="lucide:alert-triangle" class="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+                <span>{{ uploadError }}</span>
+              </div>
+              
+              <div class="flex justify-end gap-4 pt-2">
+                <button 
+                  @click="showUploadModal = false"
+                  class="px-5 py-2.5 rounded-lg text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  @click="beginUpload"
+                  :disabled="!selectedUploadFile || isUploading"
+                  :class="[
+                    'px-5 py-2.5 rounded-lg text-white transition-colors flex items-center',
+                    selectedUploadFile && !isUploading 
+                      ? 'bg-emerald-600 hover:bg-emerald-700' 
+                      : 'bg-emerald-400 cursor-not-allowed'
+                  ]"
+                >
+                  <span v-if="!isUploading">
+                    <Icon name="lucide:upload" class="w-4 h-4 mr-2 inline-block" />
+                    Begin Upload
+                  </span>
+                  <span v-else class="flex items-center">
+                    <Icon name="lucide:loader-2" class="w-4 h-4 mr-2 animate-spin" />
+                    Uploading...
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </UCard>
+      </div>
+    </UModal>
   </div>
 </template>
 
@@ -170,6 +362,12 @@ const selectedFileToView = ref<File | null>(null);
 const isUploading = ref(false);
 const uploadProgress = ref(0);
 const uploadStatus = ref('');
+const showUploadModal = ref(false);
+const uploadError = ref('');
+const accountTypeError = ref(false);
+const fileInputRef = ref<HTMLInputElement | null>(null);
+const selectedUploadFile = ref<globalThis.File | null>(null);
+const accountType = ref<string | null>(null);
 
 // Load files when component mounts
 onMounted(async () => {
@@ -231,75 +429,113 @@ async function deleteFile() {
   }
 }
 
-function handleUpload() {
-  if (isUploading.value) return;
+function browseFiles() {
+  fileInputRef.value?.click();
+}
+
+function handleFileSelected(event: Event) {
+  const input = event.target as HTMLInputElement;
+  if (!input.files?.length) return;
   
-  // Create a hidden file input element
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.csv,.xlsx,.xls';
+  const file = input.files[0];
   
-  // Handle file selection
-  input.onchange = async (event) => {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (file) {
-      try {
-        // Check if file is a CSV
-        if (!file.name.toLowerCase().endsWith('.csv')) {
-          throw new Error('Please upload a CSV file');
-        }
-        
-        // Start upload process
-        isUploading.value = true;
-        uploadProgress.value = 10;
-        uploadStatus.value = 'Reading file...';
-        
-        // Read file content
-        const content = await file.text();
-        uploadProgress.value = 30;
-        uploadStatus.value = 'Parsing CSV data...';
-        
-        // Simulate processing steps with progress updates
-        await new Promise(resolve => setTimeout(resolve, 500));
-        uploadProgress.value = 50;
-        uploadStatus.value = 'Processing transactions...';
-        
-        // Import the CSV data using the useDexie composable
-        await importTransactionCsv(content, file.name);
-        
-        uploadProgress.value = 80;
-        uploadStatus.value = 'Categorizing transactions...';
-        
-        // Simulate final processing
-        await new Promise(resolve => setTimeout(resolve, 500));
-        uploadProgress.value = 100;
-        uploadStatus.value = 'Complete!';
-        
-        // Refresh the file list
-        await loadFiles();
-        
-        // Reset upload state after a short delay to show completion
-        setTimeout(() => {
-          isUploading.value = false;
-          uploadProgress.value = 0;
-          uploadStatus.value = '';
-        }, 1000);
-      } catch (error: any) {
-        console.error('Error uploading file:', error);
-        uploadStatus.value = `Error: ${error.message || 'Error uploading file'}`;
-        
-        // Reset upload state after error display
-        setTimeout(() => {
-          isUploading.value = false;
-          uploadProgress.value = 0;
-          uploadStatus.value = '';
-        }, 3000);
+  // Validate file type
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    uploadError.value = 'Please upload a CSV file';
+    return;
+  }
+  
+  selectedUploadFile.value = file;
+  uploadError.value = '';
+}
+
+function handleFileDrop(event: DragEvent) {
+  if (!event.dataTransfer?.files.length) return;
+  
+  const file = event.dataTransfer.files[0];
+  
+  // Validate file type
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    uploadError.value = 'Please upload a CSV file';
+    return;
+  }
+  
+  selectedUploadFile.value = file;
+  uploadError.value = '';
+}
+
+async function beginUpload() {
+  if (!selectedUploadFile.value || isUploading.value) return;
+  
+  // Validate account type is selected
+  if (!accountType.value) {
+    accountTypeError.value = true;
+    return;
+  }
+  
+  try {
+    // Start upload process
+    isUploading.value = true;
+    uploadProgress.value = 10;
+    uploadStatus.value = 'Reading file...';
+    
+    // Close the modal to show progress in the card
+    showUploadModal.value = false;
+    
+    // Read file content
+    const content = await selectedUploadFile.value.text();
+    uploadProgress.value = 30;
+    uploadStatus.value = 'Parsing CSV data...';
+    
+    // Simulate processing steps with progress updates
+    await new Promise(resolve => setTimeout(resolve, 500));
+    uploadProgress.value = 50;
+    uploadStatus.value = 'Processing transactions...';
+    
+    // Import the CSV data using the useDexie composable
+    await importTransactionCsv(content, selectedUploadFile.value.name, accountType.value);
+    
+    uploadProgress.value = 80;
+    uploadStatus.value = 'Categorizing transactions...';
+    
+    // Simulate final processing
+    await new Promise(resolve => setTimeout(resolve, 500));
+    uploadProgress.value = 100;
+    uploadStatus.value = 'Complete!';
+    
+    // Refresh the file list
+    await loadFiles();
+    
+    // Reset upload state after a short delay to show completion
+    setTimeout(() => {
+      isUploading.value = false;
+      uploadProgress.value = 0;
+      uploadStatus.value = '';
+      selectedUploadFile.value = null;
+      
+      // Reset file input
+      if (fileInputRef.value) {
+        fileInputRef.value.value = '';
       }
-    }
-  };
-  
-  // Trigger the file input click
-  input.click();
+    }, 1000);
+  } catch (error: any) {
+    console.error('Error uploading file:', error);
+    uploadStatus.value = `Error: ${error.message || 'Error uploading file'}`;
+    
+    // Reset upload state after error display
+    setTimeout(() => {
+      isUploading.value = false;
+      uploadProgress.value = 0;
+      uploadStatus.value = '';
+    }, 3000);
+  }
+}
+
+function resetFileInput() {
+  selectedUploadFile.value = null;
+  if (fileInputRef.value) {
+    fileInputRef.value.value = '';
+  }
 }
 </script>
 

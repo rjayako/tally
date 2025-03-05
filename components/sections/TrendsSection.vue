@@ -66,11 +66,11 @@
               <div v-if="activeTab === 'overlap'" class="flex items-center gap-4 text-sm">
                 <div class="flex items-center gap-1.5">
                   <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
-                  <span>Income</span>
+                  <span class="text-gray-700">Income</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                   <div class="w-3 h-3 rounded-full bg-rose-500"></div>
-                  <span>Expense</span>
+                  <span class="text-gray-700">Expense</span>
                 </div>
               </div>
             </div>
@@ -90,11 +90,11 @@
               <div v-else class="w-full h-full relative">
                 <!-- Y-axis labels -->
                 <div class="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-500 pr-2">
-                  <div>100%</div>
-                  <div>75%</div>
-                  <div>50%</div>
-                  <div>25%</div>
-                  <div>0%</div>
+                  <div>${{ formatValue(yAxisLabels[0]) }}</div>
+                  <div>${{ formatValue(yAxisLabels[1]) }}</div>
+                  <div>${{ formatValue(yAxisLabels[2]) }}</div>
+                  <div>${{ formatValue(yAxisLabels[3]) }}</div>
+                  <div>${{ formatValue(yAxisLabels[4]) }}</div>
                 </div>
                 
                 <!-- Grid lines -->
@@ -187,6 +187,34 @@ const expenseData = ref<number[]>([])
 const chartLabels = ref<string[]>([])
 const rawIncomeValues = ref<number[]>([])
 const rawExpenseValues = ref<number[]>([])
+const maxChartValue = ref(0)
+
+// Computed Y-axis labels based on the maximum value
+const yAxisLabels = computed(() => {
+  // Add 20% buffer to the top of the chart
+  let max = maxChartValue.value * 1.2
+  
+  // More fine-grained rounding logic
+  const log10 = Math.floor(Math.log10(max))
+  const magnitude = 10 ** (log10 - 1)  // Use one order of magnitude smaller
+  
+  // Round to the nearest multiple of 1, 2, or 5 times the magnitude
+  if (max <= 2 * magnitude * 10) {
+    max = Math.ceil(max / (magnitude * 2)) * (magnitude * 2)
+  } else if (max <= 5 * magnitude * 10) {
+    max = Math.ceil(max / (magnitude * 5)) * (magnitude * 5)
+  } else {
+    max = Math.ceil(max / (magnitude * 10)) * (magnitude * 10)
+  }
+  
+  return [
+    max,
+    max * 0.75,
+    max * 0.5,
+    max * 0.25,
+    0
+  ]
+})
 
 // Format currency values
 const formatValue = (value: number) => {
@@ -312,9 +340,14 @@ const fetchTransactionData = async () => {
     )
     console.log('Max value for normalization:', maxValue)
     
+    // Store the max value for Y-axis labels
+    maxChartValue.value = maxValue
+    
     // Normalize values to percentages (0-100)
-    incomeData.value = monthlyIncomeTotals.map(value => (value / maxValue) * 100)
-    expenseData.value = monthlyExpenseTotals.map(value => (value / maxValue) * 100)
+    // Add 20% buffer to the normalization calculation and use the same rounded max value
+    const normalizedMax = yAxisLabels.value[0]
+    incomeData.value = monthlyIncomeTotals.map(value => (value / normalizedMax) * 100)
+    expenseData.value = monthlyExpenseTotals.map(value => (value / normalizedMax) * 100)
     chartLabels.value = labels
     console.log('Final chart data:', { 
       incomeData: incomeData.value, 

@@ -23,7 +23,7 @@ const { importTransactionCsv } = useDexie();
 
 async function handleImport() {
   try {
-    await importTransactionCsv(csvContent.value);
+    await importTransactionCsv(csvContent.value, 'manual-import.csv', 'credit');
     message.value = 'CSV imported successfully!';
   } catch (error: any) {
     console.error(error);

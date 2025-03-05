@@ -53,7 +53,7 @@ async function handleFileChange(event: Event) {
 
   try {
     const content = await file.text() as string;
-    await importTransactionCsv(content, file.name);
+    await importTransactionCsv(content, file.name, 'credit');
     errorMessage.value = '';
   } catch (error: any) {
     console.error('Error processing file:', error);
