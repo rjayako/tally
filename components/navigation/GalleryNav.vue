@@ -1,22 +1,30 @@
 <template>
-  <div class="w-full bg-white shadow-sm">
+  <div class="w-full bg-white">
     <div class="container mx-auto px-4">
-      <div class="overflow-x-auto flex items-center space-x-4 py-4 scrollbar-hide">
+      <div class="overflow-x-auto flex items-center gap-10 scrollbar-hide">
         <button
           v-for="section in sectionsStore.sectionsWithIcons"
           :key="section.id"
           @click="handleSectionClick(section.id)"
           :class="[
-            'px-6 py-3 rounded-lg transition-all duration-200 whitespace-nowrap',
+            'relative py-4 text-sm font-medium transition-all duration-200 whitespace-nowrap flex items-center group',
             activeSectionId === section.id
-              ? 'bg-[#1B4D4B] text-white'
-              : 'bg-gray-100 text-[#1B4D4B] hover:bg-gray-200'
+              ? 'text-[#1B4D4B]'
+              : 'text-[#666666] hover:text-[#1B4D4B]'
           ]"
         >
-          <div class="flex items-center space-x-2">
-            <component :is="section.icon" class="w-5 h-5" />
+          <div class="flex items-center gap-2">
+            <component :is="section.icon" class="w-4 h-4" />
             <span>{{ section.title }}</span>
           </div>
+          <div
+            :class="[
+              'absolute bottom-0 -left-4 -right-4 h-0.5 transition-all duration-200',
+              activeSectionId === section.id
+                ? 'bg-[#1B4D4B]'
+                : 'bg-transparent group-hover:bg-[#1B4D4B] opacity-0 group-hover:opacity-100'
+            ]"
+          />
         </button>
 
         <AddSectionButton @click="handleAddSection" />

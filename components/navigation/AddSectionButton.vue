@@ -1,16 +1,17 @@
 <template>
   <button
     @click="$emit('click')"
-    class="w-12 h-12 rounded-full transition-all duration-200 bg-[#E8EFEE] hover:bg-[#D1E0DF] flex items-center justify-center"
+    class="py-4 text-[#666666] hover:text-[#1B4D4B] transition-all duration-200"
     title="Add new section"
   >
-    <PlusIcon class="w-6 h-6 text-[#1B4D4B]" />
+    <div class="flex items-center gap-1">
+      <span class="text-sm font-medium">Add</span>
+      <Icon name="heroicons:plus" class="w-4 h-4" />
+    </div>
   </button>
 </template>
 
 <script setup lang="ts">
-import { PlusIcon } from '@heroicons/vue/24/outline';
-
 defineEmits<{
   (e: 'click'): void;
 }>();

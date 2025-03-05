@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useChat } from '@ai-sdk/vue'
 import { useContentSections } from '@/composables/useContentSections'
 
@@ -58,22 +58,21 @@ export function tallyChat() {
    */
   const handleClientAction = async (action: ClientAction) => {
     if (action.type === 'CREATE_SECTION') {
-      const { id: sectionId, title, type } = action.payload
-      
-      // Create the section with specified type
-      await addDynamicSection(title, undefined, type)
+      const { title, type } = action.payload;
+      // Create the section and get its id
+      const newSectionId = await addDynamicSection(title, undefined, type);
       
       // Show the new section
       await nextTick(() => {
-        showSection(sectionId)
-      })
+        showSection(newSectionId);
+      });
       
       // Notify navigation about the new section
-      window.dispatchEvent(new CustomEvent('section-created', { 
-        detail: { sectionId } 
-      }))
+      window.dispatchEvent(new CustomEvent('section-created', {
+        detail: { sectionId: newSectionId }
+      }));
     }
-  }
+  };
 
   /**
    * Enhanced submit handler for chat messages
@@ -89,10 +88,10 @@ export function tallyChat() {
       // Send message to AI and get response
       await originalHandleSubmit(e)
       
-      // Get the last message which may contain a client action
-      const lastMessage = messages.value[messages.value.length - 1]
-      if (lastMessage && '__client_action' in lastMessage) {
-        await handleClientAction(lastMessage.__client_action as ClientAction)
+      // Get the last message and cast to Message to access __client_action
+      const lastMessage = messages.value[messages.value.length - 1] as Message
+      if (lastMessage && lastMessage.__client_action) {
+        await handleClientAction(lastMessage.__client_action)
       }
     } catch (error) {
       console.error('Error handling chat message:', error)

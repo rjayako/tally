@@ -6,16 +6,16 @@
           <h1 class="text-2xl font-semibold text-[#1B4D4B] mb-6">Quick Summary</h1>
           
           <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div class="bg-white rounded-lg p-6 text-center shadow-sm border-2 border-gray-100">
-              <div class="text-4xl font-bold text-[#1B4D4B] mb-2">{{ fileCount }}</div>
+            <div class="bg-[#F3F4FF] rounded-lg p-6 text-center">
+              <div class="text-4xl font-bold text-[#4F46E5] mb-2">{{ fileCount }}</div>
               <div class="text-gray-600">Files Uploaded</div>
             </div>
-            <div class="bg-white rounded-lg p-6 text-center shadow-sm border-2 border-gray-100">
-              <div class="text-4xl font-bold text-[#1B4D4B] mb-2">{{ transactionCount }}</div>
+            <div class="bg-[#F0FDF4] rounded-lg p-6 text-center">
+              <div class="text-4xl font-bold text-[#16A34A] mb-2">{{ transactionCount }}</div>
               <div class="text-gray-600">Total Transactions</div>
             </div>
-            <div class="bg-white rounded-lg p-6 text-center shadow-sm border-2 border-gray-100">
-              <div class="text-4xl font-bold text-[#1B4D4B] mb-2">{{ uniqueCategories.length }}</div>
+            <div class="bg-[#FFF7ED] rounded-lg p-6 text-center">
+              <div class="text-4xl font-bold text-[#EA580C] mb-2">{{ uniqueCategories.length }}</div>
               <div class="text-gray-600">Categories</div>
             </div>
           </div>
