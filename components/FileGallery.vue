@@ -41,10 +41,31 @@
       <!-- Upload Card -->
       <div 
         @click="handleUpload"
-        class="border-2 border-dashed border-slate-200 rounded-lg p-6 flex flex-col items-center justify-center text-slate-400 hover:border-emerald-300 hover:text-emerald-500 transition-colors cursor-pointer"
+        :class="[
+          'border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center transition-colors',
+          isUploading 
+            ? 'border-emerald-300 text-emerald-500 cursor-default' 
+            : 'border-slate-200 text-slate-400 hover:border-emerald-300 hover:text-emerald-500 cursor-pointer'
+        ]"
       >
-        <Icon name="lucide:upload" class="w-6 h-6 mb-2" />
-        <p>Upload New File</p>
+        <template v-if="!isUploading">
+          <Icon name="lucide:upload" class="w-6 h-6 mb-2" />
+          <p>Upload New File</p>
+        </template>
+        <template v-else>
+          <div class="w-full space-y-3">
+            <div class="flex items-center justify-center">
+              <Icon name="lucide:loader-2" class="w-6 h-6 mb-2 animate-spin" />
+            </div>
+            <p class="text-center">{{ uploadStatus }}</p>
+            <div class="w-full bg-slate-200 rounded-full h-2.5">
+              <div 
+                class="bg-emerald-500 h-2.5 rounded-full transition-all duration-300" 
+                :style="{ width: `${uploadProgress}%` }"
+              ></div>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
     
@@ -128,7 +149,7 @@
 import { useDexie } from '~/composables/useDexie';
 import type { File } from '~/composables/useDexie';
 
-const { files, getTransactions } = useDexie();
+const { files, getTransactions, importTransactionCsv } = useDexie();
 
 interface FileTransaction {
   id: number;
@@ -144,6 +165,11 @@ const selectedFile = ref<File | null>(null);
 const showViewModal = ref(false);
 const fileTransactions = ref<FileTransaction[]>([]);
 const selectedFileToView = ref<File | null>(null);
+
+// Upload progress tracking
+const isUploading = ref(false);
+const uploadProgress = ref(0);
+const uploadStatus = ref('');
 
 // Load files when component mounts
 onMounted(async () => {
@@ -206,22 +232,68 @@ async function deleteFile() {
 }
 
 function handleUpload() {
+  if (isUploading.value) return;
+  
   // Create a hidden file input element
   const input = document.createElement('input');
   input.type = 'file';
-  input.accept = '.csv';
+  input.accept = '.csv,.xlsx,.xls';
   
   // Handle file selection
   input.onchange = async (event) => {
     const file = (event.target as HTMLInputElement).files?.[0];
     if (file) {
       try {
-        // Here you would typically handle the file upload
-        // For now, we'll just log it
-        console.log('File selected:', file);
-        // You can implement the actual file processing logic here
-      } catch (error) {
+        // Check if file is a CSV
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+          throw new Error('Please upload a CSV file');
+        }
+        
+        // Start upload process
+        isUploading.value = true;
+        uploadProgress.value = 10;
+        uploadStatus.value = 'Reading file...';
+        
+        // Read file content
+        const content = await file.text();
+        uploadProgress.value = 30;
+        uploadStatus.value = 'Parsing CSV data...';
+        
+        // Simulate processing steps with progress updates
+        await new Promise(resolve => setTimeout(resolve, 500));
+        uploadProgress.value = 50;
+        uploadStatus.value = 'Processing transactions...';
+        
+        // Import the CSV data using the useDexie composable
+        await importTransactionCsv(content, file.name);
+        
+        uploadProgress.value = 80;
+        uploadStatus.value = 'Categorizing transactions...';
+        
+        // Simulate final processing
+        await new Promise(resolve => setTimeout(resolve, 500));
+        uploadProgress.value = 100;
+        uploadStatus.value = 'Complete!';
+        
+        // Refresh the file list
+        await loadFiles();
+        
+        // Reset upload state after a short delay to show completion
+        setTimeout(() => {
+          isUploading.value = false;
+          uploadProgress.value = 0;
+          uploadStatus.value = '';
+        }, 1000);
+      } catch (error: any) {
         console.error('Error uploading file:', error);
+        uploadStatus.value = `Error: ${error.message || 'Error uploading file'}`;
+        
+        // Reset upload state after error display
+        setTimeout(() => {
+          isUploading.value = false;
+          uploadProgress.value = 0;
+          uploadStatus.value = '';
+        }, 3000);
       }
     }
   };

@@ -1,6 +1,6 @@
 <template>
   <ClientOnly>
-    <div v-if="isVisible" class="max-w-6xl mx-auto">
+    <div v-if="isWelcomeSectionVisible" class="max-w-6xl mx-auto">
       <div class="bg-white rounded-lg shadow-md p-8">
         <template v-if="fileCount > 0">
           <h1 class="text-2xl font-semibold text-[#1B4D4B] mb-6">Quick Summary</h1>
@@ -31,22 +31,6 @@
           
         </div>
 
-        <div class="text-center mt-8">
-          <label 
-            for="file-upload"
-            :class="[
-              'inline-flex items-center px-6 py-3 rounded-lg transition-colors duration-200 cursor-pointer shadow-sm',
-              isProcessing ? 'bg-gray-400 cursor-not-allowed' : 'bg-[#1B4D4B] hover:bg-[#2A6967]',
-              'text-white'
-            ]"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-            </svg>
-            {{ isProcessing ? 'Processing...' : 'Upload Your Statement Securely' }}
-          </label>
-        </div>
-
         <FileUploadSection 
           :is-processing="isProcessing"
           :error="error"
@@ -66,17 +50,23 @@ import { useFileUpload } from '~/composables/useFileUpload'
 import { useContentSections } from '~/composables/useContentSections'
 import { useDexie } from '~/composables/useDexie'
 import type { Section } from '~/stores/sections'
+import { useSectionsStore } from '~/stores/sections'
 
 const { selectedFile, isProcessing, error, handleFileSelect } = useFileUpload()
 const { sections } = useContentSections()
 const { files, getTransactions } = useDexie()
 
+// Get the sections store
+const sectionsStore = useSectionsStore()
+
 const fileCount = ref(0)
 const transactionCount = ref(0)
 const uniqueCategories = ref<string[]>([])
 
-const isVisible = computed(() => {
-  return sections.value.find((s: Section) => s.id === 'welcome')?.isVisible ?? false
+// Compute whether the welcome section should be visible
+const isWelcomeSectionVisible = computed(() => {
+  const welcomeSection = sectionsStore.sections.find((section: Section) => section.id === 'welcome')
+  return welcomeSection?.isVisible || false
 })
 
 // Load statistics when component mounts

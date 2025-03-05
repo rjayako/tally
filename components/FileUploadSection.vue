@@ -25,9 +25,9 @@
 <script setup lang="ts">
 import { useDexie } from '~/composables/useDexie';
 
-// Declare defineEmits for TypeScript, as it is auto-imported in Nuxt 3
-declare const defineEmits: any;
-const emit = defineEmits<{ (e: 'chat-error', message: string): void }>();
+// Simple emit declaration
+// @ts-ignore - Nuxt auto-imports
+const emit = defineEmits(['chat-error']);
 
 const { importTransactionCsv } = useDexie();
 
