@@ -53,3 +53,5 @@ pids
 *.seed
 *.pid.lock
 .cursorrules
+# Test data files
+atest_data/

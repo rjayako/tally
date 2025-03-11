@@ -18,6 +18,10 @@
               <span>Transactions</span>
               <span>{{ file.transactionCount }}</span>
             </div>
+            <div class="flex justify-between">
+              <span>Bank</span>
+              <span>{{ getBankName(file.id) || 'Unknown Bank' }}</span>
+            </div>
           </div>
         </div>
         <div class="bg-slate-50 px-6 py-3 flex justify-between">
@@ -211,6 +215,54 @@
                 </div>
               </div>
               
+              <!-- Card Type Selection -->
+              <div class="border border-slate-200 rounded-xl p-5 bg-slate-50">
+                <h4 class="font-medium text-slate-800 mb-4">Card Type <span class="text-red-500">*</span></h4>
+                <div class="relative">
+                  <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <Icon name="lucide:building-bank" class="w-5 h-5 text-slate-400" />
+                  </div>
+                  <select
+                    v-model="selectedCardConfigId"
+                    class="block w-full pl-10 px-4 py-3 pr-10 text-base border border-slate-300 rounded-lg appearance-none focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white text-slate-700 font-medium transition-colors duration-200 hover:border-emerald-300"
+                    :class="{ 'text-emerald-600': selectedCardConfigId }"
+                  >
+                    <option value="" disabled>Select your bank or card type</option>
+                    <optgroup label="Credit Cards">
+                      <option 
+                        v-for="config in creditCardConfigs" 
+                        :key="config.id" 
+                        :value="config.id"
+                      >
+                        {{ config.name }}
+                      </option>
+                    </optgroup>
+                    <optgroup label="Debit Cards">
+                      <option 
+                        v-for="config in debitCardConfigs" 
+                        :key="config.id" 
+                        :value="config.id"
+                      >
+                        {{ config.name }}
+                      </option>
+                    </optgroup>
+                  </select>
+                  <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                    <Icon name="lucide:chevron-down" class="w-5 h-5 text-slate-500" />
+                  </div>
+                </div>
+                <p class="text-xs text-slate-500 mt-2" v-if="selectedCardDescription">
+                  <span class="flex items-start">
+                    <Icon name="lucide:info" class="w-3.5 h-3.5 mr-1 mt-0.5 flex-shrink-0" />
+                    <span>{{ selectedCardDescription }}</span>
+                  </span>
+                </p>
+                <p v-if="cardConfigError" class="text-red-500 text-xs mt-3 flex items-center">
+                  <Icon name="lucide:alert-circle" class="w-3.5 h-3.5 mr-1" />
+                  Please select a card type
+                </p>
+              </div>
+              
               <!-- Transaction Type Selection -->
               <div class="border border-slate-200 rounded-xl p-5 bg-slate-50">
                 <h4 class="font-medium text-slate-800 mb-4">Transaction Type <span class="text-red-500">*</span></h4>
@@ -339,9 +391,12 @@
 
 <script setup lang="ts">
 import { useDexie } from '~/composables/useDexie';
+import { useCardConfigurations } from '~/composables/useCardConfigurations';
 import type { File } from '~/composables/useDexie';
+import type { CardConfiguration } from '~/composables/useCardConfigurations';
 
 const { files, getTransactions, importTransactionCsv } = useDexie();
+const { cardConfigurations } = useCardConfigurations();
 
 interface FileTransaction {
   id: number;
@@ -365,9 +420,29 @@ const uploadStatus = ref('');
 const showUploadModal = ref(false);
 const uploadError = ref('');
 const accountTypeError = ref(false);
+const cardConfigError = ref(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const selectedUploadFile = ref<globalThis.File | null>(null);
 const accountType = ref<string | null>(null);
+const selectedCardConfigId = ref<string>('');
+
+// Computed properties for card configurations
+const creditCardConfigs = computed(() => {
+  return cardConfigurations.value.filter((config: CardConfiguration) => 
+    ['default', 'amex', 'chase', 'discover'].includes(config.id)
+  );
+});
+
+const debitCardConfigs = computed(() => {
+  return cardConfigurations.value.filter((config: CardConfiguration) => 
+    ['rbc', 'td', 'scotiabank', 'bmo', 'cibc', 'tangerine'].includes(config.id)
+  );
+});
+
+const selectedCardDescription = computed(() => {
+  const selectedConfig = cardConfigurations.value.find((config: CardConfiguration) => config.id === selectedCardConfigId.value);
+  return selectedConfig ? selectedConfig.description : '';
+});
 
 // Load files when component mounts
 onMounted(async () => {
@@ -467,9 +542,19 @@ function handleFileDrop(event: DragEvent) {
 async function beginUpload() {
   if (!selectedUploadFile.value || isUploading.value) return;
   
+  // Reset error flags
+  accountTypeError.value = false;
+  cardConfigError.value = false;
+  
   // Validate account type is selected
   if (!accountType.value) {
     accountTypeError.value = true;
+    return;
+  }
+  
+  // Validate card type is selected
+  if (!selectedCardConfigId.value) {
+    cardConfigError.value = true;
     return;
   }
   
@@ -492,8 +577,13 @@ async function beginUpload() {
     uploadProgress.value = 50;
     uploadStatus.value = 'Processing transactions...';
     
-    // Import the CSV data using the useDexie composable
-    await importTransactionCsv(content, selectedUploadFile.value.name, accountType.value);
+    // Import the CSV data using the useDexie composable with the selected card configuration
+    await importTransactionCsv(
+      content, 
+      selectedUploadFile.value.name, 
+      accountType.value, 
+      selectedCardConfigId.value
+    );
     
     uploadProgress.value = 80;
     uploadStatus.value = 'Categorizing transactions...';
@@ -512,6 +602,8 @@ async function beginUpload() {
       uploadProgress.value = 0;
       uploadStatus.value = '';
       selectedUploadFile.value = null;
+      selectedCardConfigId.value = '';
+      accountType.value = null;
       
       // Reset file input
       if (fileInputRef.value) {
@@ -536,6 +628,34 @@ function resetFileInput() {
   if (fileInputRef.value) {
     fileInputRef.value.value = '';
   }
+}
+
+function getBankName(fileId: number | undefined) {
+  if (!fileId) return null;
+  
+  // Find the file in our list
+  const file = filesList.value.find((f: File) => f.id === fileId);
+  if (!file) return null;
+  
+  // If the file has a cardConfigId, use it to get the bank name
+  if (file.cardConfigId) {
+    const config = cardConfigurations.value.find((config: CardConfiguration) => config.id === file.cardConfigId);
+    if (config) return config.name;
+  }
+  
+  // Fallback: Find a matching card configuration based on the bank name pattern in the file name
+  const fileName = file.filename.toLowerCase();
+  
+  for (const config of cardConfigurations.value) {
+    // Check if the file name contains the bank name (case insensitive)
+    if (fileName.includes(config.id.toLowerCase()) || 
+        fileName.includes(config.name.toLowerCase())) {
+      return config.name;
+    }
+  }
+  
+  // If no match found, return a default value
+  return 'Unknown Bank';
 }
 </script>
 

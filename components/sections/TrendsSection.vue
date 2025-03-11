@@ -3,7 +3,7 @@
     <div v-if="isTrendsSectionVisible" class="max-w-6xl mx-auto mt-8">
       <div class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-500 ease-in-out">
         <!-- Header - Made smaller -->
-        <div class="relative h-32 bg-gradient-to-r from-[#1B4D4B] to-[#2A6967] overflow-hidden">
+        <div class="relative h-25 bg-gradient-to-r from-[#1B4D4B] to-[#2A6967] overflow-hidden">
           <div class="absolute inset-0 bg-black opacity-10"></div>
           <div class="relative z-10 p-6 h-full flex flex-col justify-center">
             <h2 class="text-2xl font-bold text-white">Your Financial Trends</h2>
@@ -145,12 +145,12 @@
 </template>
 
 <script setup lang="ts">
-import { useDexie, type Transaction } from '~/composables/useDexie'
+import { useDexie, type Transaction, type Account } from '~/composables/useDexie'
 import type { Section } from '~/stores/sections'
 import { useSectionsStore } from '~/stores/sections'
 
 const { sections } = useContentSections()
-const { getTransactions } = useDexie()
+const { getTransactions, db } = useDexie()
 const sectionsStore = useSectionsStore()
 
 // Compute whether the trends section should be visible
@@ -226,6 +226,45 @@ const formatValue = (value: number) => {
 }
 
 /**
+ * Helper function to get account information by accountId
+ * @param accountId - The account ID to look up
+ * @returns The account information or null if not found
+ */
+const getAccountById = async (accountId: number): Promise<Account | null> => {
+  try {
+    const account = await db.table('accounts').get(accountId)
+    return account || null
+  } catch (err) {
+    console.error('Error fetching account:', err)
+    return null
+  }
+}
+
+/**
+ * Determines if a transaction is income based on account type and amount
+ * @param transaction - The transaction to check
+ * @param accountType - The account type ('credit' or 'debit')
+ * @returns True if the transaction is income, false otherwise
+ */
+const isIncome = (amount: number, accountType: string): boolean => {
+  // For debit cards, positive amounts are income
+  // For credit cards, there is no income (all transactions are expenses)
+  return accountType === 'debit' && amount > 0
+}
+
+/**
+ * Determines if a transaction is an expense based on account type and amount
+ * @param transaction - The transaction to check
+ * @param accountType - The account type ('credit' or 'debit')
+ * @returns True if the transaction is an expense, false otherwise
+ */
+const isExpense = (amount: number, accountType: string): boolean => {
+  // For debit cards, negative amounts are expenses
+  // For credit cards, positive amounts are expenses
+  return (accountType === 'debit' && amount < 0) || (accountType === 'credit' && amount > 0)
+}
+
+/**
  * Fetches transaction data from the database and processes it for the chart
  */
 const fetchTransactionData = async () => {
@@ -275,44 +314,47 @@ const fetchTransactionData = async () => {
     const filteredTransactions = transactions.filter(tx => {
       // Convert the transaction date to a Date object if it's not already
       const txDate = tx.date instanceof Date ? tx.date : new Date(tx.date)
-      console.log('Transaction date check:', { 
-        original: tx.date, 
-        converted: txDate, 
-        isAfterStart: txDate >= sixMonthsAgo, 
-        isBeforeEnd: txDate <= today 
-      })
       return txDate >= sixMonthsAgo && txDate <= today
     })
     console.log('Filtered transactions:', filteredTransactions)
     
-    // Separate income and expense transactions
-    filteredTransactions.forEach(tx => {
+    // Process each transaction
+    for (const tx of filteredTransactions) {
       // Convert the transaction date to a Date object if it's not already
       const txDate = tx.date instanceof Date ? tx.date : new Date(tx.date)
       const monthKey = `${txDate.getFullYear()}-${txDate.getMonth() + 1}`
+      
+      // Skip if the month is not in our range
+      if (!monthlyIncomeData[monthKey]) {
+        console.log('Month not in range:', monthKey)
+        continue
+      }
+      
+      // Get account information to determine if it's a credit or debit card
+      const account = await getAccountById(tx.accountId)
+      if (!account) {
+        console.log('Account not found for transaction:', tx.id)
+        continue
+      }
       
       console.log('Processing transaction:', { 
         id: tx.id, 
         date: txDate, 
         monthKey, 
-        amount: tx.amount, 
-        isIncome: tx.amount > 0 
+        amount: tx.amount,
+        accountType: account.accountType
       })
       
-      // Skip if the month is not in our range
-      if (!monthlyIncomeData[monthKey]) {
-        console.log('Month not in range:', monthKey)
-        return
-      }
-      
-      // Positive amounts are income, negative are expenses
-      if (tx.amount > 0) {
+      // Categorize as income or expense based on account type and amount
+      if (isIncome(tx.amount, account.accountType)) {
+        // Income is only for debit cards with positive amounts
         monthlyIncomeData[monthKey].push(tx.amount)
-      } else if (tx.amount < 0) {
+      } else if (isExpense(tx.amount, account.accountType)) {
+        // Expense is for debit cards with negative amounts or credit cards with positive amounts
         // Store expense as positive value for easier calculation
         monthlyExpenseData[monthKey].push(Math.abs(tx.amount))
       }
-    })
+    }
     console.log('Monthly data:', { monthlyIncomeData, monthlyExpenseData })
     
     // Calculate monthly totals
