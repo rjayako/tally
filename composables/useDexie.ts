@@ -408,7 +408,17 @@ export async function deleteSection(sectionId: string): Promise<boolean> {
  * @returns ID of the saved message
  */
 export async function saveChatMessage(message: Omit<ChatMessage, 'id'>): Promise<number> {
-  return await chatMessages.add(message);
+  // Check if message already exists by messageId
+  const existingMessage = await chatMessages.where('messageId').equals(message.messageId).first();
+  
+  if (existingMessage) {
+    // Update existing message
+    await chatMessages.update(existingMessage.id!, message);
+    return existingMessage.id!;
+  } else {
+    // Add new message
+    return await chatMessages.add(message);
+  }
 }
 
 /**

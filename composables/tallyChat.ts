@@ -58,9 +58,8 @@ export function tallyChat() {
 
   // Function to save messages to Dexie
   const saveChatMessagesToDb = async (messagesToSave: Message[]) => {
-    try {
-      for (const message of messagesToSave) {
-        // Check if message already exists in database by messageId
+    for (const message of messagesToSave) {
+      try {
         await saveChatMessage({
           messageId: message.id,
           role: message.role,
@@ -68,9 +67,9 @@ export function tallyChat() {
           timestamp: new Date(),
           clientAction: message.__client_action ? JSON.stringify(message.__client_action) : undefined
         })
+      } catch (error) {
+        console.error(`Error saving chat message ${message.id} to Dexie:`, error)
       }
-    } catch (error) {
-      console.error('Error saving chat messages to Dexie:', error)
     }
   }
 
