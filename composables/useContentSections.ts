@@ -23,15 +23,15 @@ export function useContentSections() {
   /**
    * Hides a section by its ID
    */
-  const hideSection = (sectionId: string) => {
-    sectionsStore.hideSection(sectionId)
+  const hideSection = async (sectionId: string) => {
+    await sectionsStore.hideSection(sectionId)
   }
 
   /**
    * Shows a section by its ID
    */
-  const showSection = (sectionId: string) => {
-    sectionsStore.showSection(sectionId)
+  const showSection = async (sectionId: string) => {
+    await sectionsStore.showSection(sectionId)
   }
 
   /**
@@ -55,6 +55,14 @@ export function useContentSections() {
   }
 
   /**
+   * Removes a section by its ID
+   * @param sectionId - The ID of the section to remove
+   */
+  const removeSection = async (sectionId: string) => {
+    await sectionsStore.removeSection(sectionId)
+  }
+
+  /**
    * Checks if a section is visible
    */
   const isSectionVisible = (sectionId: string): boolean => {
@@ -75,6 +83,7 @@ export function useContentSections() {
     showSection,
     isSectionVisible,
     addDynamicSection,
-    getDynamicSections
+    getDynamicSections,
+    removeSection
   }
 }

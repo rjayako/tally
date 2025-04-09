@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex flex-col bg-[#e6e5e1]">
+  <div class="min-h-screen flex flex-col bg-[#e6e5e1] overflow-x-hidden">
     <AppHeader />
     <GalleryNav />
     <main class="flex-grow container mx-auto p-4">

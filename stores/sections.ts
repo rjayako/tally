@@ -68,7 +68,8 @@ export const useSectionsStore = defineStore('sections', {
         isVisible: false,
         type: 'dynamic'
       }
-    ] as Section[]
+    ] as Section[],
+    initialized: false
   }),
   
   getters: {
@@ -80,10 +81,62 @@ export const useSectionsStore = defineStore('sections', {
         ...section,
         icon: getIconComponent(section.iconName)
       }));
+    },
+    
+    /**
+     * Returns the currently visible section
+     */
+    visibleSection: (state) => {
+      return state.sections.find(section => section.isVisible);
+    },
+    
+    /**
+     * Returns all visible sections
+     */
+    visibleSections: (state) => {
+      return state.sections.filter(section => section.isVisible);
     }
   },
 
   actions: {
+    /**
+     * Initializes the store by loading sections from IndexedDB
+     */
+    async initialize() {
+      if (this.initialized) return;
+      
+      try {
+        const { loadSections } = useSectionStorage();
+        const storedSections = await loadSections();
+        
+        if (storedSections.length > 0) {
+          // Replace default sections with stored ones
+          this.sections = storedSections;
+        } else {
+          // If no sections in IndexedDB, persist the default ones
+          await this.persistAllSections();
+        }
+        
+        this.initialized = true;
+      } catch (error) {
+        console.error('Failed to initialize sections from IndexedDB:', error);
+      }
+    },
+    
+    /**
+     * Persists all sections to IndexedDB
+     */
+    async persistAllSections() {
+      const { persistSection } = useSectionStorage();
+      
+      try {
+        const promises = this.sections.map(section => persistSection(section));
+        await Promise.all(promises);
+      } catch (error) {
+        console.error('Failed to persist sections to IndexedDB:', error);
+      }
+    },
+    
     /**
      * Creates a new section with the specified title and type
      * @param title - The title of the section
@@ -114,8 +167,20 @@ export const useSectionsStore = defineStore('sections', {
           section.isVisible = false;
         });
         
-        // Add and return the new section
+        // Add the new section
         this.sections.push(newSection);
+        
+        // Persist the new section to IndexedDB
+        const { persistSection } = useSectionStorage();
+        await persistSection(newSection);
+        
+        // Dispatch an event that the new section was created
+        if (process.client) {
+          window.dispatchEvent(new CustomEvent('section-created', {
+            detail: { sectionId: newSection.id }
+          }));
+        }
+        
         return newSection;
       } catch (error) {
         console.error('Failed to create section:', error);
@@ -127,10 +192,14 @@ export const useSectionsStore = defineStore('sections', {
      * Hides a section by its ID
      * @param sectionId - The ID of the section to hide
      */
-    hideSection(sectionId: string) {
+    async hideSection(sectionId: string) {
       const section = this.sections.find(s => s.id === sectionId);
       if (section) {
         section.isVisible = false;
+        
+        // Persist the visibility change to IndexedDB
+        const { persistSectionVisibility } = useSectionStorage();
+        await persistSectionVisibility(sectionId, false);
       }
     },
     
@@ -138,16 +207,44 @@ export const useSectionsStore = defineStore('sections', {
      * Shows a section by its ID and hides all others
      * @param sectionId - The ID of the section to show
      */
-    showSection(sectionId: string) {
+    async showSection(sectionId: string) {
+      const { persistSectionVisibility } = useSectionStorage();
+      const updatePromises: Promise<void>[] = [];
+      
       // Hide all sections first
       this.sections.forEach(section => {
+        const wasVisible = section.isVisible;
         section.isVisible = false;
+        
+        // Only persist changes for sections that were visible
+        if (wasVisible) {
+          updatePromises.push(persistSectionVisibility(section.id, false));
+        }
       });
       
       // Show the requested section
       const section = this.sections.find(s => s.id === sectionId);
       if (section) {
         section.isVisible = true;
+        updatePromises.push(persistSectionVisibility(sectionId, true));
+      }
+      
+      // Wait for all updates to complete
+      await Promise.all(updatePromises);
+    },
+    
+    /**
+     * Removes a section by its ID
+     * @param sectionId - The ID of the section to remove
+     */
+    async removeSection(sectionId: string) {
+      const index = this.sections.findIndex(s => s.id === sectionId);
+      if (index !== -1) {
+        this.sections.splice(index, 1);
+        
+        // Remove from IndexedDB
+        const { removeSection } = useSectionStorage();
+        await removeSection(sectionId);
       }
     }
   }

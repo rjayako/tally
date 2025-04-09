@@ -1,6 +1,6 @@
 <template>
   <ClientOnly>
-    <div v-if="isTrendsSectionVisible" class="max-w-6xl mx-auto mt-8">
+    <div v-if="isTrendsSectionVisible" class="max-w-6xl mx-auto mt-8 px-4">
       <div class="bg-white rounded-2xl shadow-lg overflow-hidden transform transition-all duration-500 ease-in-out">
         <!-- Header - Made smaller -->
         <div class="relative h-25 bg-gradient-to-r from-[#1B4D4B] to-[#2A6967] overflow-hidden">

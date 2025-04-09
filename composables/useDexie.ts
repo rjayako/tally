@@ -34,6 +34,29 @@ export interface File {
   cardConfigId?: string; // Add this field to store the card configuration ID
 }
 
+// Define the Section interface for storing application sections
+export interface Section {
+  id?: number;
+  sectionId: string; // Original string ID from the application
+  title: string;
+  iconName: string;
+  isVisible: boolean;
+  isDraft: boolean;
+  type: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Define the ChatMessage interface for storing chat messages
+export interface ChatMessage {
+  id?: number;
+  messageId: string; // Original message ID
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+  clientAction?: string; // Store the client action as a JSON string
+}
+
 // Update Dexie database to version 1 with enhanced category indexing
 const db = new Dexie("tallyDB");
 
@@ -49,15 +72,29 @@ db.version(3).stores({
   accounts: "++id,&accountNumber,accountType"
 });
 
-// // Upgrade database to version 4 to add categoryId to transactions
-// db.version(4).stores({
-//   transactions: '++id,date,dateProcessed,amount,description,accountId,categoryId,&hash'
-// });
+// Upgrade database to version 4 to add sections table
+db.version(4).stores({
+  transactions: "++id,date,dateProcessed,amount,description,accountId,categoryId,categoryName,&hash,fileId",
+  accounts: "++id,&accountNumber,accountType",
+  files: "++id,filename,uploadDate,&hash",
+  sections: "++id,&sectionId,title,isVisible,isDraft,type,createdAt,updatedAt"
+});
+
+// Upgrade database to version 5 to add chat messages table
+db.version(5).stores({
+  transactions: "++id,date,dateProcessed,amount,description,accountId,categoryId,categoryName,&hash,fileId",
+  accounts: "++id,&accountNumber,accountType",
+  files: "++id,filename,uploadDate,&hash",
+  sections: "++id,&sectionId,title,isVisible,isDraft,type,createdAt,updatedAt",
+  chatMessages: "++id,&messageId,role,timestamp"
+});
 
 // Access the tables
 const transactions: Table<Transaction, number> = db.table("transactions");
 const accounts: Table<Account, number> = db.table("accounts");
 const files: Table<File, number> = db.table("files");
+const sections: Table<Section, number> = db.table("sections");
+const chatMessages: Table<ChatMessage, number> = db.table("chatMessages");
 
 // A simple hash function (djb2 algorithm) to compute a unique hash from a string
 function computeHash(str: string): string {
@@ -301,6 +338,121 @@ export async function getTransactions(): Promise<Transaction[]> {
 }
 
 /**
+ * Saves a section to the database.
+ * If the section already exists (by sectionId), it will be updated.
+ * @param section - The section to save
+ * @returns The ID of the saved section
+ */
+export async function saveSection(section: Omit<Section, 'id' | 'createdAt' | 'updatedAt'>): Promise<number> {
+  const now = new Date();
+  const existing = await sections.where('sectionId').equals(section.sectionId).first();
+  
+  if (existing) {
+    // Update existing section
+    const id = existing.id as number;
+    await sections.update(id, {
+      ...section,
+      updatedAt: now
+    });
+    return id;
+  } else {
+    // Create new section
+    return await sections.add({
+      ...section,
+      createdAt: now,
+      updatedAt: now
+    });
+  }
+}
+
+/**
+ * Retrieves all sections from the database.
+ * @returns An array of Section objects
+ */
+export async function getSections(): Promise<Section[]> {
+  return await sections.toArray();
+}
+
+/**
+ * Updates the visibility of a section.
+ * @param sectionId - The string ID of the section
+ * @param isVisible - Whether the section should be visible
+ */
+export async function updateSectionVisibility(sectionId: string, isVisible: boolean): Promise<void> {
+  const section = await sections.where('sectionId').equals(sectionId).first();
+  if (section && section.id !== undefined) {
+    await sections.update(section.id, { 
+      isVisible, 
+      updatedAt: new Date() 
+    });
+  }
+}
+
+/**
+ * Deletes a section from the database.
+ * @param sectionId - The string ID of the section to delete
+ * @returns True if the section was deleted, false otherwise
+ */
+export async function deleteSection(sectionId: string): Promise<boolean> {
+  const section = await sections.where('sectionId').equals(sectionId).first();
+  if (section && section.id !== undefined) {
+    await sections.delete(section.id);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Saves a chat message to the database
+ * @param message Chat message to save
+ * @returns ID of the saved message
+ */
+export async function saveChatMessage(message: Omit<ChatMessage, 'id'>): Promise<number> {
+  return await chatMessages.add(message);
+}
+
+/**
+ * Retrieves all chat messages from the database
+ * @returns Array of chat messages sorted by timestamp
+ */
+export async function getChatMessages(): Promise<ChatMessage[]> {
+  return await chatMessages.orderBy('timestamp').toArray();
+}
+
+/**
+ * Clears all chat messages from the database
+ */
+export async function clearChatMessages(): Promise<void> {
+  await chatMessages.clear();
+}
+
+/**
+ * Updates the type of a section in the database
+ * @param sectionId - The string ID of the section
+ * @param type - The new type for the section
+ * @returns Promise that resolves when the operation is complete
+ */
+export async function updateSectionType(sectionId: string, type: string): Promise<void> {
+  try {
+    // Find the section by its sectionId
+    const section = await sections.where('sectionId').equals(sectionId).first();
+    
+    if (section && section.id !== undefined) {
+      // Update type and updatedAt timestamp
+      await sections.update(section.id, {
+        type,
+        updatedAt: new Date()
+      });
+    } else {
+      console.warn(`Section with ID ${sectionId} not found`);
+    }
+  } catch (error) {
+    console.error(`Error updating section type for ${sectionId}:`, error);
+    throw error;
+  }
+}
+
+/**
  * Composable to use Dexie database functions easily.
  * @returns The helper functions and the db instance
  */
@@ -308,7 +460,17 @@ export function useDexie() {
   return {
     importTransactionCsv,
     getTransactions,
+    saveSection,
+    getSections,
+    updateSectionVisibility,
+    deleteSection,
     db,
-    files
+    files,
+    sections,
+    chatMessages,
+    saveChatMessage,
+    getChatMessages,
+    clearChatMessages,
+    updateSectionType
   };
 }

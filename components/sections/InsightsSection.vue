@@ -1,6 +1,6 @@
 <template>
   <ClientOnly>
-    <div v-if="isInsightsSectionVisible" class="max-w-6xl mx-auto mt-8">
+    <div v-if="isInsightsSectionVisible" class="max-w-6xl mx-auto mt-8 px-4">
       <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
         <div class="relative h-48 bg-gradient-to-r from-[#2A6967] to-[#1B4D4B] overflow-hidden">
           <div class="absolute inset-0 bg-black opacity-10"></div>

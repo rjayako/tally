@@ -1,18 +1,40 @@
 <template>
   <ClientOnly>
-    <div v-if="section.isVisible" class="max-w-6xl mx-auto mt-8">
+    <div v-if="section.isVisible" class="max-w-6xl mx-auto mt-8 px-4">
       <div class="bg-white rounded-2xl shadow-lg overflow-hidden">
-        <div class="relative h-48 bg-gradient-to-r from-[#2A6967] to-[#1B4D4B] overflow-hidden">
+        <div class="relative h-25 bg-gradient-to-r from-[#1B4D4B] to-[#2A6967] overflow-hidden">
           <div class="absolute inset-0 bg-black opacity-10"></div>
-          <div class="relative z-10 p-8 h-full flex flex-col justify-end">
+          <div class="relative z-10 p-6 h-full flex flex-col justify-center">
             <header>
-              <div v-if="isEditing">
-                <input v-model="titleInput" @keyup.enter="saveTitle" class="input-title-edit" />
-                <button @click="saveTitle">Save</button>
-                <button @click="cancelEdit">Cancel</button>
+              <div v-if="isEditing" class="flex items-center gap-2">
+                <input 
+                  v-model="titleInput" 
+                  @keyup.enter="saveTitle" 
+                  class="bg-white/20 text-white text-2xl font-bold py-1 px-2 rounded border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50 w-64" 
+                  ref="titleInputRef"
+                  :disabled="isSaving"
+                />
+                <button 
+                  @click="saveTitle"
+                  class="bg-white text-[#1B4D4B] font-medium px-3 py-1.5 rounded-md hover:bg-white/90 transition-colors flex items-center"
+                  :disabled="isSaving"
+                >
+                  <Icon v-if="isSaving" name="heroicons:arrow-path" class="w-4 h-4 mr-1 animate-spin" />
+                  <Icon v-else name="heroicons:check" class="w-4 h-4 mr-1" />
+                  {{ isSaving ? 'Saving...' : 'Save' }}
+                </button>
+                <button 
+                  @click="cancelEdit"
+                  class="bg-white/20 text-white font-medium px-3 py-1.5 rounded-md hover:bg-white/30 transition-colors flex items-center"
+                  :disabled="isSaving"
+                >
+                  <Icon name="heroicons:x-mark" class="w-4 h-4 mr-1" />
+                  Cancel
+                </button>
+                <div v-if="titleError" class="text-red-200 text-sm">{{ titleError }}</div>
               </div>
               <div v-else>
-                <h2 class="text-4xl font-bold text-white">
+                <h2 class="text-2xl font-bold text-white">
                   {{ section.title }}
                   <button @click="startEditing" class="ml-2 inline-flex items-center focus:outline-none">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
@@ -23,9 +45,8 @@
                 </h2>
               </div>
             </header>
-            <p class="text-white/90">Explore and visualize your data insights</p>
           </div>
-          <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full transform translate-x-1/3 -translate-y-1/2"></div>
+          <div class="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full transform translate-x-1/3 -translate-y-1/2"></div>
         </div>
         
         <div class="p-8">
@@ -33,7 +54,7 @@
             <h3 class="text-xl font-semibold text-[#1B4D4B] w-full">Select a Chart Type</h3>
             <div class="flex flex-wrap gap-6 justify-center w-full">
               <button
-                @click="selectChart('bar-graph')"
+                @click="selectChart('bar-chart')"
                 class="flex flex-col items-center p-6 rounded-xl transition-all duration-200 hover:scale-105 bg-[#f8f8f8] hover:bg-[#E8EFEE] group w-48 min-h-[9rem]"
               >
                 <div class="w-12 h-12 mb-3 flex items-center justify-center rounded-full bg-[#1B4D4B] text-white shadow-lg group-hover:shadow-xl transition-all">
@@ -62,16 +83,25 @@
           </div>
 
           <template v-else>
-            <div v-if="selectedChart === 'bar-graph'" class="min-h-[400px] h-full">
+            <div v-if="selectedChart === 'bar-chart'" class="min-h-[400px] h-full">
               <div class="flex items-center justify-between mb-6">
                 <h3 class="text-xl font-semibold text-[#1B4D4B]">{{ section.title }} Data</h3>
-                <button
-                  @click="selectedChart = null"
-                  class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 text-[#1B4D4B] hover:bg-[#E8EFEE]"
-                >
-                  <Icon name="heroicons:arrow-path" class="w-5 h-5" />
-                  <span>Change Chart</span>
-                </button>
+                <div class="flex gap-2">
+                  <button
+                    @click="openChatForVisualization"
+                    class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 text-white bg-[#1B4D4B] hover:bg-[#2A6967]"
+                  >
+                    <Icon name="heroicons:chat-bubble-left" class="w-5 h-5" />
+                    <span>Chat to Change</span>
+                  </button>
+                  <button
+                    @click="changeChart"
+                    class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 text-[#1B4D4B] hover:bg-[#E8EFEE]"
+                  >
+                    <Icon name="heroicons:arrow-path" class="w-5 h-5" />
+                    <span>Change Chart</span>
+                  </button>
+                </div>
               </div>
               <BarGraph />
             </div>
@@ -79,13 +109,22 @@
             <div v-else-if="selectedChart === 'pie-chart'" class="min-h-[400px] h-full">
               <div class="flex items-center justify-between mb-6">
                 <h3 class="text-xl font-semibold text-[#1B4D4B]">{{ section.title }} Distribution</h3>
-                <button
-                  @click="selectedChart = null"
-                  class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 text-[#1B4D4B] hover:bg-[#E8EFEE]"
-                >
-                  <Icon name="heroicons:arrow-path" class="w-5 h-5" />
-                  <span>Change Chart</span>
-                </button>
+                <div class="flex gap-2">
+                  <button
+                    @click="openChatForVisualization"
+                    class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 text-white bg-[#1B4D4B] hover:bg-[#2A6967]"
+                  >
+                    <Icon name="heroicons:chat-bubble-left" class="w-5 h-5" />
+                    <span>Chat to Change</span>
+                  </button>
+                  <button
+                    @click="changeChart"
+                    class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 text-[#1B4D4B] hover:bg-[#E8EFEE]"
+                  >
+                    <Icon name="heroicons:arrow-path" class="w-5 h-5" />
+                    <span>Change Chart</span>
+                  </button>
+                </div>
               </div>
               <PieChart />
             </div>
@@ -109,9 +148,11 @@
 
 import type { Section } from '~/stores/sections'
 import { useSectionsStore } from '~/stores/sections'
+import { useChatInteractionStore } from '~/stores/chatInteraction'
 import BarGraph from '~/components/sections/BarGraph.vue'
 import PieChart from '~/components/sections/PieChart.vue'
-import { useHead } from '#imports'
+import { useHead, nextTick, ref, computed, watch } from '#imports'
+import { useSectionStorage } from '~/composables/useSectionStorage'
 
 interface Props {
   section: Section
@@ -119,13 +160,33 @@ interface Props {
 
 const props = defineProps<Props>()
 const sectionsStore = useSectionsStore()
+const chatInteractionStore = useChatInteractionStore()
 
-// State for selected chart type
-const selectedChart = ref<'bar-graph' | 'pie-chart' | null>(null)
+// State for selected chart type - Now driven by the store & section type
+const selectedChart = computed(() => {
+  // First check the store for a user-selected visualization
+  const storeValue = chatInteractionStore.sectionVisualization[props.section.id];
+  if (storeValue === 'bar-chart' || storeValue === 'pie-chart') {
+    return storeValue;
+  }
+  
+  // If no store value, derive from section.type
+  if (props.section.type === 'bar-graph') {
+    return 'bar-chart';
+  } else if (props.section.type === 'pie-chart') {
+    return 'pie-chart';
+  }
+  
+  // Default to null if no visualization type is found
+  return null;
+});
 
 // State for editing title
 const isEditing = ref(false)
 const titleInput = ref(props.section.title)
+const titleInputRef = ref<HTMLInputElement | null>(null)
+const isSaving = ref(false)
+const titleError = ref<string | null>(null)
 
 // Compute the appropriate icon name based on section type
 const getIconName = computed(() => {
@@ -148,34 +209,86 @@ const handleClose = () => {
   sectionsStore.hideSection(props.section.id)
 }
 
-// Handle chart selection
-const selectChart = (type: 'bar-graph' | 'pie-chart') => {
-  selectedChart.value = type
+// Handle chart selection - Now updates the store with 'bar-chart' or 'pie-chart'
+const selectChart = (type: 'bar-chart' | 'pie-chart') => {
+  if (props.section.type === 'dynamic') {
+    chatInteractionStore.setVisualization(props.section.id, type);
+  }
 }
+
+// Function to allow changing the chart (clears store state for this section)
+const changeChart = () => {
+  if (props.section.type === 'dynamic') {
+      // Setting to null will show the selection UI again
+      chatInteractionStore.setVisualization(props.section.id, null);
+  }
+  // For non-dynamic sections, this might reset local state if applicable
+};
 
 // Start editing
 const startEditing = () => {
   isEditing.value = true
   titleInput.value = props.section.title
+  // Focus the input field after the next DOM update
+  nextTick(() => {
+    titleInputRef.value?.focus()
+  })
 }
 
 // Save title
-const saveTitle = () => {
-  // Update the section title and the document head
-  // If section is mutable; if it's not, emit an event instead
-  props.section.title = titleInput.value
-  useHead({ title: titleInput.value })
-  isEditing.value = false
+const saveTitle = async () => {
+  if (!titleInput.value.trim()) {
+    // Don't save empty titles
+    cancelEdit()
+    return
+  }
+  
+  try {
+    isSaving.value = true
+    // Save the title to the API
+    await $fetch(`/api/sections/${props.section.id}`, {
+      method: 'POST',
+      body: { title: titleInput.value.trim() }
+    })
+    
+    // Update the section title locally and the document head
+    props.section.title = titleInput.value.trim()
+    useHead({ title: titleInput.value.trim() })
+    
+    // Update section in IndexedDB via the sections store
+    const { persistSection } = useSectionStorage()
+    await persistSection(props.section)
+    
+    // Exit editing mode
+    isEditing.value = false
+  } catch (error) {
+    console.error('Failed to update section title:', error)
+    titleError.value = 'Failed to save title. Please try again later.'
+    // Keep editing mode active on error
+  } finally {
+    isSaving.value = false
+  }
 }
 
 // Cancel edit
 const cancelEdit = () => {
   isEditing.value = false
   titleInput.value = props.section.title
+  titleError.value = null
 }
 
 // Optionally, watch the section title to update the head if it changes externally
 watch(() => props.section.title, (newTitle: string) => {
   useHead({ title: newTitle });
 })
+
+// Add a new method to open chat for visualization
+const openChatForVisualization = () => {
+  chatInteractionStore.startVisualizationChat(props.section.id);
+  
+  // Dispatch an event to open the chat
+  window.dispatchEvent(new CustomEvent('open-chat-for-visualization', {
+    detail: { sectionId: props.section.id }
+  }));
+}
 </script> 

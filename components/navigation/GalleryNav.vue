@@ -1,5 +1,5 @@
 <template>
-  <div class="w-full bg-white">
+  <div class="w-full bg-white overflow-hidden">
     <div class="container mx-auto px-4">
       <div class="overflow-x-auto flex items-center gap-10 scrollbar-hide">
         <button
@@ -34,14 +34,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, provide } from 'vue';
 import AddSectionButton from './AddSectionButton.vue';
 import { useSectionsStore } from '~/stores/sections';
 import { useChatStore } from '~/stores/chat';
+import { useChatInteractionStore } from '~/stores/chatInteraction';
 
 const sectionsStore = useSectionsStore();
 const chatStore = useChatStore();
 const activeSectionId = ref('welcome');
+
+// Provide the active section ID to be used by other components
+provide('activeSectionId', activeSectionId);
 
 const handleSectionClick = (sectionId: string) => {
   sectionsStore.sections.forEach(section => {
@@ -64,6 +68,18 @@ const handleSectionClick = (sectionId: string) => {
 const handleAddSection = () => {
   sectionsStore.createSection('New Section').then(section => {
     handleSectionClick(section.id);
+    
+    // Directly trigger the visualization chat for the new section
+    const chatInteractionStore = useChatInteractionStore();
+    chatInteractionStore.startVisualizationChat(section.id);
+    
+    // Dispatch event explicitly to make sure it's caught
+    window.dispatchEvent(new CustomEvent('section-created', {
+      detail: { sectionId: section.id }
+    }));
+    
+    // Also explicitly make chat visible
+    chatStore.openChat();
   });
 };
 

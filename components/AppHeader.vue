@@ -1,5 +1,5 @@
 <template>
-  <header class="p-4">
+  <header class="p-4 w-full">
     <nav class="container mx-auto flex justify-between items-center">
       <NuxtLink to="/" class="flex items-center">
         <div class="w-8 h-8 bg-[#1B4D4B] rounded flex items-center justify-center mr-2">

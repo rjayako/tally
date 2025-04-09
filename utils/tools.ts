@@ -57,8 +57,62 @@ export const createSectionTool = tool({
   },
 });
 
+export const analyzeVisualizationIntentTool = tool({
+  description: 'Analyze user message to determine their visualization preference (bar chart or pie chart)',
+  parameters: z.object({
+    userMessage: z.string().describe('The user message to analyze for visualization intent'),
+    sectionId: z.string().describe('The section ID this visualization is for'),
+  }),
+  execute: async function ({ userMessage, sectionId }) {
+    const normalizedMessage = userMessage.toLowerCase();
+    
+    // Simple intent analysis - could be replaced with more sophisticated NLP in production
+    const barChartIndicators = ['bar', 'bar chart', 'bar graph', 'column', 'comparison', 'side by side'];
+    const pieChartIndicators = ['pie', 'pie chart', 'distribution', 'ratio', 'proportion', 'percentage'];
+    
+    // Check if the message contains any indicators
+    const containsBarIndicator = barChartIndicators.some(indicator => normalizedMessage.includes(indicator));
+    const containsPieIndicator = pieChartIndicators.some(indicator => normalizedMessage.includes(indicator));
+    
+    let visualizationType = null;
+    let confidence = 'low';
+    
+    // Determine the visualization type based on indicators
+    if (containsBarIndicator && !containsPieIndicator) {
+      visualizationType = 'bar-chart';
+      confidence = 'high';
+    } else if (containsPieIndicator && !containsBarIndicator) {
+      visualizationType = 'pie-chart';
+      confidence = 'high';
+    } else if (containsBarIndicator && containsPieIndicator) {
+      // If both indicators are present, choose the one that appears first or more frequently
+      const barIndex = normalizedMessage.indexOf('bar');
+      const pieIndex = normalizedMessage.indexOf('pie');
+      
+      visualizationType = (barIndex !== -1 && (pieIndex === -1 || barIndex < pieIndex)) 
+        ? 'bar-chart' 
+        : 'pie-chart';
+      confidence = 'medium';
+    }
+    
+    return { 
+      visualizationType,
+      confidence,
+      sectionId,
+      __client_action: visualizationType ? {
+        type: 'SET_VISUALIZATION',
+        payload: {
+          sectionId,
+          visualizationType
+        }
+      } : null
+    };
+  },
+});
+
 export const tools = {
   displayWeather: weatherTool,
   getStockPrice: stockTool,
   createSection: createSectionTool,
+  analyzeVisualizationIntent: analyzeVisualizationIntentTool
 };
